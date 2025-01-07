@@ -9,3 +9,12 @@ const app = createApp(App)
 app.use(router)
 
 app.mount('#app')
+
+import Toast, { type PluginOptions } from "vue-toastification";
+// Import the CSS or use your own!
+import "vue-toastification/dist/index.css";
+
+const options: PluginOptions = {
+};
+
+app.use(Toast, options);

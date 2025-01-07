@@ -1,5 +1,8 @@
 <script lang="ts">
 import { ref } from "vue";
+import { useToast } from "vue-toastification";
+
+const toast = useToast()
 
 interface Formulario{
   nombre: string;
@@ -16,16 +19,30 @@ export default{
   
 
   const enviarDatos = async () => {
-    console.log('Datos enviados:', form.value);
     
     try{
-      await fetch('http://127.0.0.1:65432/iniciar-sesion',{
+      console.log('Iniciando la funcion')
+      const request = await fetch('http://127.0.0.1:65432/iniciar-sesion',{
         method: 'POST',
-        body: JSON.stringify(form.value)
+        body: JSON.stringify(form.value),
       })
+      console.log(request)
+
+      const data = await request.json()
+      console.log('El status es el siguiente:', data.status)
+
+      if (data.status != 'Ok'){
+        toast.error('Un error ha ocurrido al iniciar sesión')
+      }
+
+      else {
+        
+      }
+
     }
     catch(e){
-      console.error(e);
+      console.log(e)
+      toast.error('No se ha logrado iniciar sesión')
     }
 
     
@@ -44,15 +61,14 @@ export default{
 
 <template>
   <main>
-    <form action="http://127.0.0.1:65432" method="POST">
-
+    
       <label for="name">Nombre</label>
       <input type="text" v-model="form.nombre" name="name">
       
       <label for="name">Correo</label>
       <input type="text" v-model="form.correo" name="correo">
       
-      <button @click.prevent.stop="enviarDatos()" type="submit" >Ingresar</button>
-    </form>
+      <button  @click="enviarDatos">Ingresar</button>
+    
   </main>
 </template>

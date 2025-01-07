@@ -1,18 +1,12 @@
 import socket, json, os
-import sqlite3, smtplib, ssl
+import smtplib, ssl
 from modulesPython.my_logging import create_logger
-from modulesPython.http_header_builder import HttpProtocolBuilder
+from modulesPython.http_header_builder import HttpProtocolBuilder, HttpProtocolFactory
 
 db_logger = create_logger('db_logger')
 
-http = HttpProtocolBuilder().add_created_status().add_ok_status().obtain_http_headers()
-print(http)
-
-
-HOST = '127.0.0.1'  # Dirección del servidor
-PORT = 65432         # Puerto para el servidor JSON
-
-CABECERAHTTPOK= 'HTTP/1.1 200 OK'
+HOST = '127.0.0.1'
+PORT = 65432
 
 try:
     dbConection = sqlite3.connect('gestor_tareas.db')
@@ -24,6 +18,7 @@ try:
                contrasenya TEXT,
                listaTareas TEXT
                );''')
+    dbConection.close()
 except sqlite3.OperationalError as e:
     msg = f'Ha ocurrido un error al inicializar la base de datos: {e}'
     db_logger.debug(msg)
@@ -50,36 +45,20 @@ print('El PID del proceso es el siguiente: ', os.getpid())
 
 while True:
     conn, addr = server_socket.accept()
-    completeRequest = conn.recv(1024).decode('utf-8')
-    firstLineRequest = completeRequest.split('/r/n')[0]
+    completeRequest = conn.recv(4096).decode('utf-8')
+    print('La request es la siguiente:', completeRequest)
+    firstLineRequest = completeRequest.split('\r\n')[0]
     method = firstLineRequest.split(' ')[0]
     route = firstLineRequest.split(' ')[1]
-    print(method, route, '\n\n\n', completeRequest)
 
     if method == 'POST' and route=='/iniciar-sesion':
-        httpResponse = CABECERAHTTPOK + '''Content-Type: application/json
-Access-Control-Allow-Origin: http://localhost:5173
-Access-Control-Allow-Credentials: true
+        httpResponse = HttpProtocolFactory.http_ok_origin('application',
+                                                            'json',
+                                                            'http://localhost:5173'
+                                                        )
 
+        httpResponse += '{"status": "Ok"}'
+        print(httpResponse)
 
-
-
-{status: ok, data: saved}
-'''
-        conn.sendall(httpResponse.encode('utf-8'))
-
-    conn.close()
-
-
-# Access-Control-Allow-Origin: http://127.0.0.1:65431
-# Access-Control-Allow-Credentials: true
-
-
-#      if "GET /" in request:
-#         # Responder con JSON
-#         response_body = json.dumps(users)
-#         response = f"""\
-# HTTP/1.1 200 OK
-# Content-Type: application/json
-# Access-Control-Allow-Origin: http://localhost:5173
-# Access-Control-Allow-Credentials: true
+        conn.send(httpResponse.encode())
+        conn.close()
